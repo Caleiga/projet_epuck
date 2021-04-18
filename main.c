@@ -81,7 +81,8 @@ int main(void)
 
     /* Infinite loop. */
     while (1) {
-#ifdef SEND_FROM_MIC
+        chThdSleepMilliseconds(1000);
+/*#ifdef SEND_FROM_MIC
         //waits until a result must be sent to the computer
         wait_send_to_computer();
 #ifdef DOUBLE_BUFFERING
@@ -91,7 +92,7 @@ int main(void)
 #else
         SendFloatToComputer((BaseSequentialStream *) &SD3, get_audio_buffer_ptr(LEFT_OUTPUT), FFT_SIZE);
 #endif  /* DOUBLE_BUFFERING */
-#else
+/*#else
         //time measurement variables
         volatile uint16_t time_fft = 0;
         volatile uint16_t time_mag  = 0;
@@ -106,7 +107,7 @@ int main(void)
             *   Optimized FFT
             */
             
-            chSysLock();
+ /*           chSysLock();
             //reset the timer counter
             GPTD12.tim->CNT = 0;
 
@@ -149,7 +150,7 @@ int main(void)
             *   End of non optimized FFT
             */
 
-            chSysLock();
+/*            chSysLock();
             //reset the timer counter
             GPTD12.tim->CNT = 0;
 

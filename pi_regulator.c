@@ -10,6 +10,8 @@
 #include <pi_regulator.h>
 #include <process_image.h>
 
+#define NORMAL_SPEED 500
+
 //simple PI regulator implementation
 int16_t pi_regulator(float distance, float goal){
 
@@ -20,7 +22,7 @@ int16_t pi_regulator(float distance, float goal){
 
 	error = distance - goal;
 
-	//disables the PI regulator if the error is to small
+	//disables the PI regulator if the error is too small
 	//this avoids to always move as we cannot exactly be where we want and 
 	//the camera is a bit noisy
 	if(fabs(error) < ERROR_THRESHOLD){
