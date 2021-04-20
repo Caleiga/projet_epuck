@@ -8,15 +8,9 @@
 
 #include <process_image.h>
 
-#define LINE_NUMBER 479 		// px
-#define IMAGE_HEIGHT 480 		// px
-#define IMAGE_WIDTH 640 		// px
-#define NORMAL_SPEED 500 		// tics per second, equivalent to half a rotation per second
-#define GOAL_LINE_POSITION 500  // where in the image the robot should aim to keep the line representing the side of the track
-
 static bool track_side = 0; 	// which side of the track the robot should follow. 0 for left, 1 for right.
 static float error = 0;
-static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
+static uint16_t line_position = MIDDLE;	//middle
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -47,8 +41,8 @@ bool determine_track_side(uint8_t *buffer){
 
 uint16_t determine_line_position(uint8_t *buffer){
 	
-	uint16_t i = 0, begin = 0, end = 0,
-	uint8_t stop = 0, wrong_line = 0, line_not_found = 0;
+	uint16_t i, begin, end = 0;
+	uint8_t stop, wrong_line = 0, line_not_found = 0;
 	uint32_t mean = 0;
 
 	//performs an average
@@ -108,6 +102,7 @@ uint16_t determine_line_position(uint8_t *buffer){
 
 	if(!line_not_found){
 		line_position = (begin + end)/2; //gives the new line position
+	}
 
 	return line_position;
 }
@@ -148,7 +143,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 	uint16_t error_pixels = 0;
 
-	bool left_or_right = 0;
+	//bool left_or_right = 0;
 
 	bool send_to_computer = true;
 
@@ -166,23 +161,23 @@ static THD_FUNCTION(ProcessImage, arg) {
 		}
 
 		//search for a line in the image, gets its position and compares it to the desires value in pixels
-		error_pixels = (GOAL_LINE_POSITION - get_line_position(image));
+		error_pixels = (GOAL_LINE_POSITION - determine_line_position(image));
 
 		//converts the error from pixels to cm
 		error = PXTOCM*error_pixels; //MODIFIER PXTOCM
 
 		if(send_to_computer){
 			//sends to the computer the image
-			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
+			//SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
 		}
 		//invert the bool
-		send_to_computer = !send_to_computer;
+		//send_to_computer = !send_to_computer;
     }
 }
 
 //-------------------------------------------------------------------------------------------------------------
 
 void process_image_start(void){
-	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
-	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
+	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO+1, ProcessImage, NULL);
+	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO+1, CaptureImage, NULL);
 }

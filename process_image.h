@@ -1,7 +1,7 @@
 #ifndef PROCESS_IMAGE_H
 #define PROCESS_IMAGE_H
 
-uint16_t get_error(void);
+float get_error(void);
 bool get_track_side(void);
 bool determine_track_side(uint8_t *buffer);
 uint16_t determine_line_position(uint8_t *buffer);

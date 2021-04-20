@@ -10,7 +10,7 @@
 #include <pi_regulator.h>
 #include <process_image.h>
 
-#define NORMAL_SPEED 500
+#define NORMAL_SPEED 400
 
 
 //-------------------------------------------------------------------------------------------------------------
@@ -60,8 +60,10 @@ static THD_FUNCTION(PiRegulator, arg) {
     while(1){
         time = chVTGetSystemTime();
         
-        speed_correction = pi_regulator(GOAL_LINE_DISTANCE, get_distance());
+        speed_correction = pi_regulator(get_error());
 
+        right_motor_set_speed(NORMAL_SPEED);
+        left_motor_set_speed(NORMAL_SPEED);
 
         if(left_or_right==0){
         	right_motor_set_speed(NORMAL_SPEED);
