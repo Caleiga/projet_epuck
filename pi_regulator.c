@@ -12,15 +12,15 @@
 
 #define NORMAL_SPEED 500
 
-//simple PI regulator implementation
-int16_t pi_regulator(float distance, float goal){
 
-	float error = 0;
+//-------------------------------------------------------------------------------------------------------------
+
+//simple PI regulator implementation
+int16_t pi_regulator(float error){
+
 	float speed = 0;
 
 	static float sum_error = 0;
-
-	error = distance - goal;
 
 	//disables the PI regulator if the error is too small
 	//this avoids to always move as we cannot exactly be where we want and 
@@ -43,6 +43,9 @@ int16_t pi_regulator(float distance, float goal){
     return (int16_t)speed;
 }
 
+//-------------------------------------------------------------------------------------------------------------
+
+
 static THD_WORKING_AREA(waPiRegulator, 256);
 static THD_FUNCTION(PiRegulator, arg) {
 
@@ -51,31 +54,30 @@ static THD_FUNCTION(PiRegulator, arg) {
 
     systime_t time;
 
-    int16_t speed = 0;
     int16_t speed_correction = 0;
+    bool left_or_right= get_track_side();
 
     while(1){
         time = chVTGetSystemTime();
         
-        //computes the speed to give to the motors
-        //distance_cm is modified by the image processing thread
-        speed = pi_regulator(get_distance_cm(), GOAL_DISTANCE);
-        //computes a correction factor to let the robot rotate to be in front of the line
-        speed_correction = (get_line_position() - (IMAGE_BUFFER_SIZE/2));
+        speed_correction = pi_regulator(GOAL_LINE_DISTANCE, get_distance());
 
-        //if the line is nearly in front of the camera, don't rotate
-        if(abs(speed_correction) < ROTATION_THRESHOLD){
-        	speed_correction = 0;
-        }
 
-        //applies the speed from the PI regulator and the correction for the rotation
-		right_motor_set_speed(speed - ROTATION_COEFF * speed_correction);
-		left_motor_set_speed(speed + ROTATION_COEFF * speed_correction);
+        if(left_or_right==0){
+        	right_motor_set_speed(NORMAL_SPEED);
+			left_motor_set_speed(NORMAL_SPEED + speed_correction);
+        } else {
+        	right_motor_set_speed(NORMAL_SPEED + speed_correction);
+			left_motor_set_speed(NORMAL_SPEED);
+		}
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
 }
+
+
+//-------------------------------------------------------------------------------------------------------------
 
 void pi_regulator_start(void){
 	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
