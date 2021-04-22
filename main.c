@@ -15,21 +15,7 @@
 #include <fft.h>
 #include <communications.h>
 #include <arm_math.h>
-
-//uncomment to use double buffering to send the FFT to the computer
-//#define DOUBLE_BUFFERING
-
-static void serial_start(void)
-{
-	static SerialConfig ser_cfg = {
-	    115200,
-	    0,
-	    0,
-	    0,
-	};
-
-	sdStart(&SD3, &ser_cfg); // UART3.
-}
+#include <gpio.h>
 
 static void timer12_start(void){
     //General Purpose Timer configuration   
@@ -54,18 +40,16 @@ int main(void)
     chSysInit();
     mpu_init();
 
-    starts the serial communication
-    serial_start();
-    //starts the USB communication
-    usb_start();
+    SystemClock_Config();
+  
+    // Enable GPIOD peripheral clock
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN;
+    gpio_config_output_opendrain(LED7);
+
     //starts timer 12
     timer12_start();
     //inits the motors
     motors_init();
-
-    //send_tab is used to save the state of the buffer to send (double buffering)
-    //to avoid modifications of the buffer while sending it
-    static float send_tab[FFT_SIZE];
 
     //starts the microphones processing thread.
     //it calls the callback given in parameter when samples are ready
