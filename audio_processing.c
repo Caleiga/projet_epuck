@@ -26,23 +26,16 @@ static float micRight_output[FFT_SIZE];
 static float micFront_output[FFT_SIZE];
 static float micBack_output[FFT_SIZE];
 
+static bool box_order = flase;
+static int box_nb_of_times = 0;
+
 #define MIN_VALUE_THRESHOLD	10000 
 
-#define MIN_FREQ		15	//we don't analyze before this index to not use resources for nothing
-#define FREQ_FORWARD	26	//250Hz
-#define FREQ_LEFT		29	//296Hz
-#define FREQ_RIGHT		32	//359HZ
-#define FREQ_BACKWARD	35	//406Hz
-#define MAX_FREQ		37	//we don't analyze after this index to not use resources for nothing
-
-#define FREQ_FORWARD_L		(FREQ_FORWARD-1)
-#define FREQ_FORWARD_H		(FREQ_FORWARD+1)
-#define FREQ_LEFT_L			(FREQ_LEFT-1)
-#define FREQ_LEFT_H			(FREQ_LEFT+1)
-#define FREQ_RIGHT_L		(FREQ_RIGHT-1)
-#define FREQ_RIGHT_H		(FREQ_RIGHT+1)
-#define FREQ_BACKWARD_L		(FREQ_BACKWARD-1)
-#define FREQ_BACKWARD_H		(FREQ_BACKWARD+1)
+//Box box a un pic de fréquence entre 34 et 35 (531,25Hz et 546,875Hz)
+#define MIN_FREQ		31	//we don't analyze before this index to not use resources for nothing
+#define FREQ_LOW_BOX	34	//531,25HZ
+#define FREQ_HIGH_BOX	35	//546,875Hz
+#define MAX_FREQ		38	//we don't analyze after this index to not use resources for nothing
 
 /*	Simple function used to detect the highest value in a buffer
 *	and to execute a motor command depending on it
@@ -61,37 +54,30 @@ void sound_remote(float* data){
 
 	//hear "box box box box"
 
-	if(max_norm_index >= FREQ_FORWARD_L && max_norm_index <= FREQ_FORWARD_H){
+	if(max_norm_index >= FREQ_LOW_BOX && max_norm_index <= FREQ_HIGH_BOX){
 		set_led(LED1, 1);
 		set_led(LED3, 0);
 		set_led(LED5, 0);
 		set_led(LED7, 0);
-	}
-	//turn left
-	else if(max_norm_index >= FREQ_LEFT_L && max_norm_index <= FREQ_LEFT_H){
-		set_led(LED3, 1);
-		set_led(LED1, 0);
-		set_led(LED5, 0);
-		set_led(LED7, 0);
-	}
-	//turn right
-	else if(max_norm_index >= FREQ_RIGHT_L && max_norm_index <= FREQ_RIGHT_H){
-		set_led(LED5, 1);
-		set_led(LED1, 0);
-		set_led(LED3, 0);
-		set_led(LED7, 0);
-	}
-	//go backward
-	else if(max_norm_index >= FREQ_BACKWARD_L && max_norm_index <= FREQ_BACKWARD_H){
-		set_led(LED7, 1);
-		set_led(LED1, 0);
-		set_led(LED3, 0);
-		set_led(LED5, 0);
+		box_nb_of_times += 1;
 	}
 	else{
 		clear_leds();
 	}
+	if(box_nb_of_times >= 2) {
+		box_order = true;
+		set_front_led(1);
+		box_nb_of_times = 0;
+		counter = 0;
+	}
+	++counter;
+	//La front led s'éteint au bout de 10sec environ
+	if(counter == 50) {
+		set_front_led(0);
+		counter = 0;
+	}
 }
+
 
 /*
 *	Callback called when the demodulation of the four microphones is done.
