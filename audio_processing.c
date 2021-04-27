@@ -10,6 +10,7 @@
 #include <communications.h>
 #include <fft.h>
 #include <arm_math.h>
+#include <leds.h>
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -27,12 +28,12 @@ static float micBack_output[FFT_SIZE];
 
 #define MIN_VALUE_THRESHOLD	10000 
 
-#define MIN_FREQ		10	//we don't analyze before this index to not use resources for nothing
-#define FREQ_FORWARD	16	//250Hz
-#define FREQ_LEFT		19	//296Hz
-#define FREQ_RIGHT		23	//359HZ
-#define FREQ_BACKWARD	26	//406Hz
-#define MAX_FREQ		30	//we don't analyze after this index to not use resources for nothing
+#define MIN_FREQ		15	//we don't analyze before this index to not use resources for nothing
+#define FREQ_FORWARD	26	//250Hz
+#define FREQ_LEFT		29	//296Hz
+#define FREQ_RIGHT		32	//359HZ
+#define FREQ_BACKWARD	35	//406Hz
+#define MAX_FREQ		37	//we don't analyze after this index to not use resources for nothing
 
 #define FREQ_FORWARD_L		(FREQ_FORWARD-1)
 #define FREQ_FORWARD_H		(FREQ_FORWARD+1)
@@ -43,8 +44,7 @@ static float micBack_output[FFT_SIZE];
 #define FREQ_BACKWARD_L		(FREQ_BACKWARD-1)
 #define FREQ_BACKWARD_H		(FREQ_BACKWARD+1)
 
-/*
-*	Simple function used to detect the highest value in a buffer
+/*	Simple function used to detect the highest value in a buffer
 *	and to execute a motor command depending on it
 */
 void sound_remote(float* data){
@@ -59,31 +59,38 @@ void sound_remote(float* data){
 		}
 	}
 
-	//go forward
+	//hear "box box box box"
+
 	if(max_norm_index >= FREQ_FORWARD_L && max_norm_index <= FREQ_FORWARD_H){
-		left_motor_set_speed(600);
-		right_motor_set_speed(600);
+		set_led(LED1, 1);
+		set_led(LED3, 0);
+		set_led(LED5, 0);
+		set_led(LED7, 0);
 	}
 	//turn left
 	else if(max_norm_index >= FREQ_LEFT_L && max_norm_index <= FREQ_LEFT_H){
-		left_motor_set_speed(-600);
-		right_motor_set_speed(600);
+		set_led(LED3, 1);
+		set_led(LED1, 0);
+		set_led(LED5, 0);
+		set_led(LED7, 0);
 	}
 	//turn right
 	else if(max_norm_index >= FREQ_RIGHT_L && max_norm_index <= FREQ_RIGHT_H){
-		left_motor_set_speed(600);
-		right_motor_set_speed(-600);
+		set_led(LED5, 1);
+		set_led(LED1, 0);
+		set_led(LED3, 0);
+		set_led(LED7, 0);
 	}
 	//go backward
 	else if(max_norm_index >= FREQ_BACKWARD_L && max_norm_index <= FREQ_BACKWARD_H){
-		left_motor_set_speed(-600);
-		right_motor_set_speed(-600);
+		set_led(LED7, 1);
+		set_led(LED1, 0);
+		set_led(LED3, 0);
+		set_led(LED5, 0);
 	}
 	else{
-		left_motor_set_speed(0);
-		right_motor_set_speed(0);
+		clear_leds();
 	}
-	
 }
 
 /*

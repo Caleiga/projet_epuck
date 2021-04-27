@@ -15,9 +15,10 @@
 #include <fft.h>
 #include <communications.h>
 #include <arm_math.h>
+#include <leds.h>
 
 //uncomment to send the FFTs results from the real microphones
-//#define SEND_FROM_MIC
+#define SEND_FROM_MIC
 
 //uncomment to use double buffering to send the FFT to the computer
 #define DOUBLE_BUFFERING
@@ -63,8 +64,6 @@ int main(void)
     usb_start();
     //starts timer 12
     timer12_start();
-    //inits the motors
-    motors_init();
 
     //temp tab used to store values in complex_float format
     //needed bx doFFT_c
@@ -115,39 +114,7 @@ int main(void)
             time_fft = GPTD12.tim->CNT;
             chSysUnlock();
 
-            /*
-            *   End of optimized FFT
-            */
-
-            /*
-            *   Non optimized FFT
-            */
-
-            // //need to convert the float buffer into complex_float struct array
-            // for(uint16_t i = 0 ; i < (2*FFT_SIZE) ; i+=2){
-            //     temp_tab[i/2].real = bufferCmplxInput[i];
-            //     temp_tab[i/2].imag = bufferCmplxInput[i+1];
-            // }
-
-            // chSysLock();
-            // //reset the timer counter
-            // GPTD12.tim->CNT = 0;
-
-            // //do a non optimized FFT
-            // doFFT_c(FFT_SIZE, temp_tab);
-
-            // time_fft = GPTD12.tim->CNT;
-            // chSysUnlock();
-            
-            // //reconverts the result into a float buffer
-            // for(uint16_t i = 0 ; i < (2*FFT_SIZE) ; i+=2){
-            //     bufferCmplxInput[i] = temp_tab[i/2].real;
-            //     bufferCmplxInput[i+1] = temp_tab[i/2].imag;
-            // }
-
-            /*
-            *   End of non optimized FFT
-            */
+           
 
             chSysLock();
             //reset the timer counter
