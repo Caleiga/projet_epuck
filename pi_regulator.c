@@ -12,7 +12,6 @@
 
 
 
-
 //simple PI regulator implementation
 int16_t pi_regulator(float error){
 
@@ -37,7 +36,7 @@ int16_t pi_regulator(float error){
 		sum_error = -MAX_SUM_ERROR;
 	}
 
-	speed = KP * error; //+ KI * sum_error;
+	speed = KP * error + KI * sum_error;
 
     return (int16_t)speed;
 }

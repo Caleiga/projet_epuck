@@ -10,10 +10,11 @@
 
 
 
-static bool track_side = 0; 	// which side of the track the robot should follow. 0 for left, 1 for right.
+static bool track_side = 1; 	// which side of the track the robot should follow. 0 for left, 1 for right.
 static float error = 0;
 static uint16_t right_side_position = GOAL_LINE_POSITION_RIGHT;
 static uint16_t left_side_position = GOAL_LINE_POSITION_LEFT;
+
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -136,9 +137,10 @@ uint16_t determine_right_side_position(uint8_t *buffer){
 	if(stop) {
 		right_side_position = falling_edge;
 		set_body_led(1);
-	} else
+	} else {
 		set_body_led(0);
-
+		right_side_position += CORRECTION_SIDE_LOST;
+	}
 	return right_side_position;
 }
 
@@ -163,9 +165,10 @@ uint16_t determine_left_side_position(uint8_t *buffer){
 		if(stop) {
 			left_side_position = rising_edge;
 			set_body_led(1);
-		} else
+		} else{
 			set_body_led(0);
-
+			left_side_position -= CORRECTION_SIDE_LOST;
+		}
 		return left_side_position;
 }
 //-------------------------------------------------------------------------------------------------------------
