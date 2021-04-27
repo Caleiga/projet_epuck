@@ -2,15 +2,18 @@
 #include "hal.h"
 #include <chprintf.h>
 #include <usbcfg.h>
-
+#include <leds.h>
 #include <main.h>
 #include <camera/po8030.h>
 
 #include <process_image.h>
 
+
+
 static bool track_side = 0; 	// which side of the track the robot should follow. 0 for left, 1 for right.
 static float error = 0;
-static uint16_t line_position = MIDDLE;	//middle
+static uint16_t right_side_position = GOAL_LINE_POSITION_RIGHT;
+static uint16_t left_side_position = GOAL_LINE_POSITION_LEFT;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -21,6 +24,10 @@ float get_error(void){
 	return error;
 }
 
+//uint16_t get_line_position(void){
+//	return line_position;
+//}
+
 //-------------------------------------------------------------------------------------------------------------
 
 bool get_track_side(void){
@@ -29,17 +36,17 @@ bool get_track_side(void){
 
 //-------------------------------------------------------------------------------------------------------------
 
-bool determine_track_side(uint8_t *buffer){
+/*bool determine_track_side(uint8_t *buffer){
 
 	bool left_or_right = 0;
 	// A COMPLETER
 
 	return left_or_right;
-}
+} */
 
 //-------------------------------------------------------------------------------------------------------------
 
-uint16_t determine_line_position(uint8_t *buffer){
+/*uint16_t determine_line_position(uint8_t *buffer){
 	
 	uint16_t i, begin, end = 0;
 	uint8_t stop, wrong_line = 0, line_not_found = 0;
@@ -107,6 +114,60 @@ uint16_t determine_line_position(uint8_t *buffer){
 	return line_position;
 }
 
+*/
+
+uint16_t determine_right_side_position(uint8_t *buffer){
+
+	uint16_t i = 0;
+	uint16_t stop = 0;
+	uint32_t falling_edge = 0;
+
+	while(stop == 0 && i < (IMAGE_BUFFER_SIZE - WIDTH_SLOPE))
+	{
+		//the slope must at least be WIDTH_SLOPE wide and is compared to the mean of the image
+		if(buffer[i] > buffer[i+WIDTH_SLOPE] + JUMP)
+		{
+			falling_edge = i;
+			stop = 1;
+		}
+		i++;
+	}
+
+	if(stop) {
+		right_side_position = falling_edge;
+		set_body_led(1);
+	} else
+		set_body_led(0);
+
+	return right_side_position;
+}
+
+
+uint16_t determine_left_side_position(uint8_t *buffer){
+
+	uint16_t i = 0;
+		uint16_t stop = 0;
+		uint32_t rising_edge = 0;
+
+		while(stop == 0 && i < (IMAGE_BUFFER_SIZE - WIDTH_SLOPE))
+		{
+			//the slope must at least be WIDTH_SLOPE wide and is compared to the mean of the image
+			if(buffer[i] < buffer[i+WIDTH_SLOPE] - JUMP )
+			{
+				rising_edge = i;
+				stop = 1;
+			}
+			i++;
+		}
+
+		if(stop) {
+			left_side_position = rising_edge;
+			set_body_led(1);
+		} else
+			set_body_led(0);
+
+		return left_side_position;
+}
 //-------------------------------------------------------------------------------------------------------------
 
 static THD_WORKING_AREA(waCaptureImage, 256);
@@ -128,6 +189,7 @@ static THD_FUNCTION(CaptureImage, arg) {
 		wait_image_ready();
 		//signals an image has been captured
 		chBSemSignal(&image_ready_sem);
+
     }
 }
 
@@ -145,6 +207,8 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 	//bool left_or_right = 0;
 
+
+
 	bool send_to_computer = true;
 
     while(1){
@@ -161,23 +225,25 @@ static THD_FUNCTION(ProcessImage, arg) {
 		}
 
 		//search for a line in the image, gets its position and compares it to the desires value in pixels
-		error_pixels = (GOAL_LINE_POSITION - determine_line_position(image));
+		if(track_side == RIGHT)
+			error_pixels = GOAL_LINE_POSITION_RIGHT - determine_right_side_position(image);
+		else
+			error_pixels = determine_left_side_position(image) - GOAL_LINE_POSITION_LEFT;
 
 		//converts the error from pixels to cm
-		error = PXTOCM*error_pixels; //MODIFIER PXTOCM
+		error = PXTOCM*error_pixels;
 
 		if(send_to_computer){
-			//sends to the computer the image
-			//SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
+			//sends the image to the computer
+			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
 		}
-		//invert the bool
-		//send_to_computer = !send_to_computer;
+		send_to_computer = !send_to_computer;
     }
 }
 
 //-------------------------------------------------------------------------------------------------------------
 
 void process_image_start(void){
-	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO+1, ProcessImage, NULL);
-	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO+1, CaptureImage, NULL);
+	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
+	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
 }
