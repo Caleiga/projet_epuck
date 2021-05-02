@@ -23,25 +23,29 @@ void SendUint8ToComputer(uint8_t* data, uint16_t size);
 #define KP						100.0f
 #define KI 						1.0f					//must not be zero
 #define MAX_SUM_ERROR 			50
-#define LINE_NUMBER 			479 					// px
+#define LINE_NUMBER 			470 					// px
 #define IMAGE_HEIGHT 			480 					// px
 #define IMAGE_WIDTH 			640 					// px
-#define NORMAL_SPEED 			700						// tics per second, equivalent to half a rotation per second
+#define FAST 					700						// tics per second, equivalent to half a rotation per second
+#define SLOW					400
 #define MIDDLE 					320
 #define LEFT					0
 #define RIGHT					1
-#define JUMP					30
+#define JUMP					20
 #define CORRECTION_SIDE_LOST	5
+#define MEAN_DIFFERENCE_LIMIT	5
+#define MAX_DIFFERENCE_LIMIT	30
+#define MAX_SPEED				1000
+#define VIGNETTING_OFFSET		100
+#define NO_COLOURED_LINE		0
+#define RED						1
+#define GREEN					2
+#define BLUE					3
+#define OVERTAKE_DISTANCE		100
+
 
 #define GOAL_LINE_POSITION_RIGHT 		500 			// where in the image the robot should aim to keep the line representing the side of the track
 #define GOAL_LINE_POSITION_LEFT 		100
-
-#define LED1     	GPIOD, 5
-#define LED3     	GPIOD, 6
-#define LED5     	GPIOD, 10
-#define LED7     	GPIOD, 11
-#define FRONT_LED	GPIOD, 14
-#define BODY_LED	GPIOB, 2
 
 /** Robot wide IPC bus. */
 extern messagebus_t bus;

@@ -14,8 +14,9 @@
 #include <arm_math.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
-#include <pi_regulator.h>
+#include <drive.h>
 #include <process_image.h>
+#include <sensors/VL53L0X/VL53L0X.h>
 
 //-------------------------------------------------------------------------------------------------------------
 
@@ -54,17 +55,27 @@ int main(void)
     //starts the camera
     dcmi_start();
   	po8030_start();
+  	po8030_set_awb(0);
+  	po8030_set_ae(0);
+  	po8030_set_rgb_gain(94, 100, 100);
+  	po8030_set_exposure(300,0);
+
+  	//starts the distance detector
+  	VL53L0X_start();
 
    	//inits the motors
    	motors_init();
 
-   	//starts the threads for the pi regulator and the processing of the image
-   	pi_regulator_start();
+   	//starts the threads for the the processing of the image and the driving
+   	drive_start();
    	process_image_start();
 
     /* Infinite loop. */
     while (1) {
-        chThdSleepMilliseconds(1000);
+
+    	overtake();
+
+        chThdSleepMilliseconds(2000);
     }
 }
 
