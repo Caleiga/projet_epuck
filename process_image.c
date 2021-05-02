@@ -72,28 +72,31 @@ void determine_line_colour(uint8_t *buffer_red, uint8_t *buffer_green, uint8_t *
 //	}
 //
 //	if((max_red > max_green + MAX_DIFFERENCE_LIMIT) && (max_red > max_blue + MAX_DIFFERENCE_LIMIT)) {
+//		if(line_colour == NO_COLOURED_LINE)
+//			straight_line = !straight_line;
 //		line_colour = RED;
 //		set_led(LED7,1);
 //		set_led(LED3, 0);
 //		coloured_line = true;
-//		straight_line = !straight_line;
 //	}
 //
 //	if((max_blue > max_green + MAX_DIFFERENCE_LIMIT) && (max_blue > max_red + MAX_DIFFERENCE_LIMIT)) {
+//		if(line_colour == NO_COLOURED_LINE)
+//			straight_line = !straight_line;
 //		line_colour = BLUE;
 //		set_led(LED3,1);
 //		set_led(LED7, 0);
 //		coloured_line = true;
-//		straight_line = !straight_line;
 //	}
 //
 //
 //	if((max_green > max_red + MAX_DIFFERENCE_LIMIT) && (max_green > max_blue + MAX_DIFFERENCE_LIMIT)) {
+//		if(line_colour == NO_COLOURED_LINE)
+//			straight_line = !straight_line;
 //		line_colour = GREEN;
 //		set_led(LED3,1);
 //		set_led(LED7, 0);
 //		coloured_line = true;
-//		straight_line = !straight_line;
 //	}
 //
 //	if(coloured_line == false)
@@ -126,28 +129,31 @@ void determine_line_colour(uint8_t *buffer_red, uint8_t *buffer_green, uint8_t *
 	}
 
 	if((mean_red > mean_green + MEAN_DIFFERENCE_LIMIT) && (mean_red > mean_blue + MEAN_DIFFERENCE_LIMIT)) {
+		if(line_colour == NO_COLOURED_LINE)
+			straight_line = !straight_line;
 		line_colour = RED;
 		set_led(LED7,1);
 		set_led(LED3, 0);
 		coloured_line = true;
-		straight_line = !straight_line;
 	}
 
 	if((mean_blue > mean_green + MEAN_DIFFERENCE_LIMIT) && (mean_blue > mean_red + MEAN_DIFFERENCE_LIMIT)) {
+		if(line_colour == NO_COLOURED_LINE)
+			straight_line = !straight_line;
 		line_colour = BLUE;
 		set_led(LED7,0);
 		set_led(LED3, 1);
 		coloured_line = true;
-		straight_line = !straight_line;
 	}
 
 
 	if((mean_green > mean_red + MEAN_DIFFERENCE_LIMIT) && (mean_green > mean_blue + MEAN_DIFFERENCE_LIMIT)) {
+		if(line_colour == NO_COLOURED_LINE)
+			straight_line = !straight_line;
 		line_colour = GREEN;
 		set_led(LED7,0);
 		set_led(LED3, 1);
 		coloured_line = true;
-		straight_line = !straight_line;
 	}
 
 	if(!coloured_line)
