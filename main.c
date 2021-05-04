@@ -72,10 +72,7 @@ int main(void)
 
     /* Infinite loop. */
     while (1) {
-
-    	overtake();
-
-        chThdSleepMilliseconds(2000);
+        chThdSleepMilliseconds(1000);
     }
 }
 

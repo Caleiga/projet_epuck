@@ -10,5 +10,6 @@ uint16_t get_track_side_position(void);
 bool get_track_side_lost(void);
 uint16_t get_line_colour(void);
 bool get_straight_line(void);
+bool get_coloured_line(void);
 
 #endif /* PROCESS_IMAGE_H */

@@ -8,13 +8,14 @@
 #include <motors.h>
 #include <process_image.h>
 #include <sensors/VL53L0X/VL53L0X.h>
+#include <leds.h>
 
 //-------------------------------------------------------------------------------------------------------------
 
-static bool track_side = LEFT; 	 	// which side of the track the robot should follow
-static bool pitstop = 0;	 		// whether the order for a pitstop has been received
-static bool overtake_status = 0; 	// whether there is a car to overtake in front
-static bool fast = 0;				// whether FAST or SLOW average speed
+static bool track_side = LEFT; 	 	// which side of the track the robot should follow.
+static bool pitstop = 0;	 		// whether the order for a pitstop has been received.
+static bool car_in_front = 0; 		// whether there is a car to overtake in front.
+static bool fast = 1;				// whether FAST or SLOW average speed.
 
 //-------------------------------------------------------------------------------------------------------------
 
@@ -30,14 +31,16 @@ bool get_pitstop(void) {
 
 //-------------------------------------------------------------------------------------------------------------
 
-bool get_overtake_status(void) {
-	return overtake_status;
+bool get_car_in_front(void) {
+	return car_in_front;
 }
 
 //-------------------------------------------------------------------------------------------------------------
 
 void overtake(void) {
-	if(fast && overtake_status)
+
+	//checks if in a straight line and if there is a car in front. If yes, overtaking is done by switching the track side.
+	if(fast && car_in_front)
 		track_side = !track_side;
 }
 
@@ -45,37 +48,44 @@ void overtake(void) {
 
 void determine_track_side(void) {
 
-	uint16_t colour = get_line_colour();
+	//checks if there is a coloured line was detected.
+	if(get_coloured_line()) {
 
-	if(colour == RED) {
-		track_side = LEFT;
+		//determines the track side to follow depending on what the line colour is.
+		uint8_t colour = get_line_colour();
 
-	} else if(colour == BLUE) {
-		track_side = RIGHT;
+		if(colour == RED) {
+			track_side = LEFT;
 
-	} else if(colour == GREEN) {
-		 if(pitstop) {
-			 track_side = LEFT;
-		 } else
-			 track_side = RIGHT;
+		} else if(colour == BLUE) {
+			track_side = RIGHT;
+
+		} else if(colour == GREEN) {
+			if(pitstop) {
+				track_side = LEFT;
+			} else
+				track_side = RIGHT;
+		}
 	}
-
 }
 
 //-------------------------------------------------------------------------------------------------------------
 
 //checks if there is a car to overtake in front
-void determine_overtake_status(void) {
+void determine_car_in_front(void) {
 
-	if(VL53L0X_get_dist_mm() < OVERTAKE_DISTANCE)
-		overtake_status = 1;
-	else
-		overtake_status = 0;
+	if(VL53L0X_get_dist_mm() < OVERTAKE_DISTANCE) {
+		car_in_front = 1;
+		set_front_led(1);
+	} else {
+		car_in_front = 0;
+		set_front_led(0);
+	}
 }
 
 //-------------------------------------------------------------------------------------------------------------
 
-// PI regulator to follow the side of the track
+// PI regulator to follow the side of the track.
 int16_t pi_regulator(float error){
 
 
@@ -84,22 +94,25 @@ int16_t pi_regulator(float error){
 
 	//disables the PI regulator if the error is too small
 	//this avoids to always move as we cannot exactly be where we want and 
-	//the camera is a bit noisy
-	if(fabs(error) < ERROR_THRESHOLD){
+	//the camera is a bit noisy.
+	if(abs(error) < ERROR_THRESHOLD){
 		sum_error = 0;
 		return 0;
 	}
 
 	sum_error += error;
 
-	//we set a maximum and a minimum for the sum to avoid an uncontrolled growth
+	//we set a maximum and a minimum for the sum to avoid an uncontrolled growth.
 	if(sum_error > MAX_SUM_ERROR){
 		sum_error = MAX_SUM_ERROR;
 	}else if(sum_error < -MAX_SUM_ERROR){
 		sum_error = -MAX_SUM_ERROR;
 	}
 
-	speed_correction = KP * error;
+	if(fast)
+		speed_correction = KP * error;
+	else
+		speed_correction = KP * error + KI * sum_error;
 
     return (int16_t)speed_correction;
 }
@@ -124,25 +137,34 @@ static THD_FUNCTION(Drive, arg) {
 
         time = chVTGetSystemTime();
         
-        fast = get_straight_line();
+        //fast = get_straight_line();
+
+        determine_track_side();
+        if(track_side == LEFT) {
+        	set_led(LED7, 1);
+        	set_led(LED3, 0);
+        } else {
+        	set_led(LED7, 0);
+        	set_led(LED3, 1);
+        }
 
         if(fast)
             average_speed = FAST;
         else
             average_speed = SLOW;
 
-
-        determine_track_side();
-
-
-        if(track_side == LEFT)
-            error_pixels = get_track_side_position() - GOAL_LINE_POSITION_LEFT;
-        else
-            error_pixels = GOAL_LINE_POSITION_RIGHT - get_track_side_position();
+        if(!get_track_side_lost()) {
+        	determine_car_in_front();
+        	overtake();
+        }
 
 
         if(get_track_side_lost())
-        	error_pixels -= CORRECTION_SIDE_LOST;
+        	error_pixels = CORRECTION_SIDE_LOST;
+        else if(track_side == LEFT)
+            error_pixels = get_track_side_position() - GOAL_LINE_POSITION_LEFT;
+        else
+            error_pixels = GOAL_LINE_POSITION_RIGHT - get_track_side_position();
 
 
         error_cm = PXTOCM * error_pixels;
@@ -168,5 +190,5 @@ static THD_FUNCTION(Drive, arg) {
 //-------------------------------------------------------------------------------------------------------------
 
 void drive_start(void){
-	chThdCreateStatic(waDrive, sizeof(waDrive), NORMALPRIO + 1, Drive, NULL);
+	chThdCreateStatic(waDrive, sizeof(waDrive), NORMALPRIO, Drive, NULL);
 }

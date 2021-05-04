@@ -9,11 +9,11 @@
 #include <process_image.h>
 
 
-static uint16_t track_side_position = MIDDLE;		// Position of the side of the track in pixels
-static bool coloured_line = 0;						// Whether there is a coloured line
-static uint8_t line_colour = NO_COLOURED_LINE;		// The colour of the coloured line (red, green or blue) indicating a turn or the pitstop entrance
-static bool straight_line = 1;						// Whether currently in a turn or a straight line
-static bool track_side_lost = 0;					// If the side of the track could not be found
+static uint16_t track_side_position = GOAL_LINE_POSITION_LEFT;		// Position of the side of the track in pixels
+static bool coloured_line = 0;										// Whether there is a coloured line
+static uint8_t line_colour = RED;									// The colour of the coloured line (red, green or blue) indicating a turn or the pitstop entrance
+static bool straight_line = 1;										// Whether currently in a turn or a straight line
+static bool track_side_lost = 0;									// If the side of the track could not be found
 
 static uint8_t mean_red = 0;
 static uint8_t mean_green = 0;
@@ -25,6 +25,12 @@ static uint8_t mean_blue = 0;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
+
+//-------------------------------------------------------------------------------------------------------------
+
+bool get_coloured_line(void) {
+	return coloured_line;
+}
 
 //-------------------------------------------------------------------------------------------------------------
 
@@ -102,11 +108,10 @@ void determine_line_colour(uint8_t *buffer_red, uint8_t *buffer_green, uint8_t *
 //	if(coloured_line == false)
 //		clear_leds();
 
-	// reset the means and the coloured line boolean
+	// reset the means and the coloured_line boolean
 	mean_red = 0;
 	mean_green = 0;
 	mean_blue = 0;
-	coloured_line = 0;
 
 	if(get_track_side() == LEFT){
 		for(uint16_t i = track_side_position ; i < IMAGE_BUFFER_SIZE - VIGNETTING_OFFSET ; ++i){
@@ -129,31 +134,31 @@ void determine_line_colour(uint8_t *buffer_red, uint8_t *buffer_green, uint8_t *
 	}
 
 	if((mean_red > mean_green + MEAN_DIFFERENCE_LIMIT) && (mean_red > mean_blue + MEAN_DIFFERENCE_LIMIT)) {
-		if(line_colour == NO_COLOURED_LINE)
+		if(!coloured_line)
 			straight_line = !straight_line;
+
 		line_colour = RED;
 		set_led(LED7,1);
 		set_led(LED3, 0);
 		coloured_line = true;
-	}
-
-	if((mean_blue > mean_green + MEAN_DIFFERENCE_LIMIT) && (mean_blue > mean_red + MEAN_DIFFERENCE_LIMIT)) {
-		if(line_colour == NO_COLOURED_LINE)
+	} else if((mean_blue > mean_green + MEAN_DIFFERENCE_LIMIT) && (mean_blue > mean_red + MEAN_DIFFERENCE_LIMIT)) {
+		if(!coloured_line)
 			straight_line = !straight_line;
+
 		line_colour = BLUE;
 		set_led(LED7,0);
 		set_led(LED3, 1);
 		coloured_line = true;
-	}
-
-
-	if((mean_green > mean_red + MEAN_DIFFERENCE_LIMIT) && (mean_green > mean_blue + MEAN_DIFFERENCE_LIMIT)) {
-		if(line_colour == NO_COLOURED_LINE)
+	} else if((mean_green > mean_red + MEAN_DIFFERENCE_LIMIT) && (mean_green > mean_blue + MEAN_DIFFERENCE_LIMIT)) {
+		if(!coloured_line)
 			straight_line = !straight_line;
+
 		line_colour = GREEN;
 		set_led(LED7,0);
 		set_led(LED3, 1);
 		coloured_line = true;
+	} else {
+		coloured_line = false;
 	}
 
 	if(!coloured_line)
@@ -278,7 +283,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 			image_blue[i/2] = (((uint8_t)img_buff_ptr[i+1]&0x1F) << 3);
 
 		//checks if there is a line indicating the beginning or the end of a turn and finds it's colour
-		determine_line_colour(image_red, image_green, image_blue);
+		//determine_line_colour(image_red, image_green, image_blue);
 
 		//if there is no coloured line search for the track side it should follow
 		if(!coloured_line){
@@ -299,6 +304,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 //-------------------------------------------------------------------------------------------------------------
 
 void process_image_start(void){
-	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
-	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
+	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO + 1, ProcessImage, NULL);
+	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO + 1, CaptureImage, NULL);
 }
