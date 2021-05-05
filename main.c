@@ -86,11 +86,15 @@ int main(void)
 
     while (1) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
     	overtake();
 
         chThdSleepMilliseconds(2000);
+>>>>>>> origin/camera
+=======
+        chThdSleepMilliseconds(1000);
 >>>>>>> origin/camera
     }
 }

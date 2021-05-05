@@ -23,7 +23,7 @@ static float micRight_output[FFT_SIZE];
 static float micFront_output[FFT_SIZE];
 static float micBack_output[FFT_SIZE];
 
-static bool box_order = false;
+static bool boxbox = false;
 
 
 #define MIN_VALUE_THRESHOLD	10000 
@@ -64,7 +64,7 @@ void sound_remote(float* data){
 		clear_leds();
 	}
 	if(box_nb_of_times >= 2) {
-		box_order = true;
+		boxbox = true;
 		set_front_led(1);
 		box_nb_of_times = 0;
 		counter = 0;
