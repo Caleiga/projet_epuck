@@ -39,7 +39,6 @@ static bool boxbox = false;
 */
 void sound_remote(float* data){
 	static int8_t box_nb_of_times = 0;
-	static int8_t counter = 0;
 	float max_norm = MIN_VALUE_THRESHOLD;
 	int16_t max_norm_index = -1; 
 
@@ -54,27 +53,14 @@ void sound_remote(float* data){
 	//hear "box box box box"
 
 	if(max_norm_index >= FREQ_LOW_BOX && max_norm_index <= FREQ_HIGH_BOX){
-		set_led(LED1, 1);
-		set_led(LED3, 0);
-		set_led(LED5, 0);
-		set_led(LED7, 0);
 		box_nb_of_times += 1;
-	}
-	else{
-		clear_leds();
 	}
 	if(box_nb_of_times >= 2) {
 		boxbox = true;
-		set_front_led(1);
 		box_nb_of_times = 0;
 		counter = 0;
 	}
-	++counter;
-	//La front led s'éteint au bout de 10sec environ
-	if(counter == 50) {
-		set_front_led(0);
-		counter = 0;
-	}
+	
 }
 
 

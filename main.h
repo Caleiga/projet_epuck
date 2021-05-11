@@ -9,8 +9,6 @@ extern "C" {
 #include "msgbus/messagebus.h"
 #include "parameter/parameter.h"
 
-<<<<<<< HEAD
-=======
 void SendUint8ToComputer(uint8_t* data, uint16_t size);
 
 #define IMAGE_BUFFER_SIZE		640
@@ -49,7 +47,6 @@ void SendUint8ToComputer(uint8_t* data, uint16_t size);
 #define GOAL_LINE_POSITION_RIGHT 		450 			// where in the image the robot should aim to keep the line representing the side of the track
 #define GOAL_LINE_POSITION_LEFT 		150
 
->>>>>>> origin/camera
 /** Robot wide IPC bus. */
 extern messagebus_t bus;
 

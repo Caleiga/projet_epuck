@@ -13,7 +13,7 @@
 //-------------------------------------------------------------------------------------------------------------
 
 static bool track_side = LEFT; 	 	// which side of the track the robot should follow.
-static bool pitstop = 0;	 		// whether the order for a pitstop has been received.
+static bool pitstop = 0;	 		// whether the order for a pitstop has been received. --> boo boxbox in audio
 static bool car_in_front = 0; 		// whether there is a car to overtake in front.
 static bool fast = 1;				// whether FAST or SLOW average speed.
 
