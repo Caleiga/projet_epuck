@@ -1,6 +1,6 @@
 #include "ch.h"
 #include "hal.h"
-#include <math.h>
+//#include <math.h>
 #include <usbcfg.h>
 #include <chprintf.h>
 #include <drive.h>
@@ -9,6 +9,9 @@
 #include <process_image.h>
 #include <sensors/VL53L0X/VL53L0X.h>
 #include <leds.h>
+#include <audio_processing.h>
+#include <sensors/proximity.h>
+#include <msgbus/messagebus.h>
 
 //-------------------------------------------------------------------------------------------------------------
 
@@ -16,6 +19,15 @@ static bool track_side = LEFT; 	 	// which side of the track the robot should fo
 static bool pitstop = 0;	 		// whether the order for a pitstop has been received.
 static bool car_in_front = 0; 		// whether there is a car to overtake in front.
 static bool fast = 1;				// whether FAST or SLOW average speed.
+static bool stop = 0; 				// whether the robot has to be stopped (pitlane)
+static bool pit_lane_next_turn = false;
+static bool pitting = 0;
+
+//-------------------------------------------------------------------------------------------------------------
+
+void clear_stop(void) {
+	stop = 0;
+}
 
 //-------------------------------------------------------------------------------------------------------------
 
@@ -37,6 +49,17 @@ bool get_car_in_front(void) {
 
 //-------------------------------------------------------------------------------------------------------------
 
+void determine_pit_lane_next_turn(void) {
+	//checks if there are any signs announcing that the pit lane is after the next turn
+	if(get_calibrated_prox(2) > 100 || get_calibrated_prox(5) > 100) {
+    	pit_lane_next_turn = true;
+    } else {
+        pit_lane_next_turn = false;
+   	}
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
 void overtake(void) {
 
 	//checks if in a straight line and if there is a car in front. If yes, overtaking is done by switching the track side.
@@ -47,24 +70,21 @@ void overtake(void) {
 //-------------------------------------------------------------------------------------------------------------
 
 void determine_track_side(void) {
-
-	//checks if there is a coloured line was detected.
-	if(get_coloured_line()) {
+	//check for the pitlane first
+	if(get_boxbox() && pit_lane_next_turn) {
+		track_side = LEFT;
+		pitting = 1;
+	
+	} else if(get_coloured_line()) { 	//checks if there is a coloured line was detected.
 
 		//determines the track side to follow depending on what the line colour is.
-		uint8_t colour = get_line_colour();
+		bool colour = get_line_colour();
 
 		if(colour == RED) {
 			track_side = LEFT;
 
-		} else if(colour == BLUE) {
-			track_side = RIGHT;
-
 		} else if(colour == GREEN) {
-			if(pitstop) {
-				track_side = LEFT;
-			} else
-				track_side = RIGHT;
+			track_side = RIGHT;
 		}
 	}
 }
@@ -76,10 +96,10 @@ void determine_car_in_front(void) {
 
 	if(VL53L0X_get_dist_mm() < OVERTAKE_DISTANCE) {
 		car_in_front = 1;
-		set_front_led(1);
+		//set_front_led(1);
 	} else {
 		car_in_front = 0;
-		set_front_led(0);
+		//set_front_led(0);
 	}
 }
 
@@ -109,10 +129,7 @@ int16_t pi_regulator(float error){
 		sum_error = -MAX_SUM_ERROR;
 	}
 
-	if(fast)
-		speed_correction = KP * error;
-	else
-		speed_correction = KP * error + KI * sum_error;
+	speed_correction = KP * error;
 
     return (int16_t)speed_correction;
 }
@@ -131,55 +148,71 @@ static THD_FUNCTION(Drive, arg) {
     int16_t speed_correction = 0;
     uint16_t error_pixels = 0;
     float error_cm = 0;
+    messagebus_topic_t *prox_topic = messagebus_find_topic_blocking(&bus, "/proximity");
+    proximity_msg_t prox_values;
 
 
     while(1){
 
         time = chVTGetSystemTime();
+        messagebus_topic_wait(prox_topic, &prox_values, sizeof(prox_values));
         
-        //fast = get_straight_line();
+        //check if the robot is allowed to drive
+        if(!stop) {
 
-        determine_track_side();
-        if(track_side == LEFT) {
-        	set_led(LED7, 1);
-        	set_led(LED3, 0);
-        } else {
-        	set_led(LED7, 0);
-        	set_led(LED3, 1);
-        }
+        	determine_pit_lane_next_turn();
+        	
+        	fast = get_straight_line();
 
-        if(fast)
-            average_speed = FAST;
-        else
-            average_speed = SLOW;
+		    determine_track_side();
 
-        if(!get_track_side_lost()) {
-        	determine_car_in_front();
-        	overtake();
-        }
+		    if(fast)
+		        average_speed = FAST;
+		    else
+		        average_speed = SLOW;
+
+		    if(!get_track_side_lost()) {
+		    	determine_car_in_front();
+		    	overtake();
+		    }
 
 
-        if(get_track_side_lost())
-        	error_pixels = CORRECTION_SIDE_LOST;
-        else if(track_side == LEFT)
-            error_pixels = get_track_side_position() - GOAL_LINE_POSITION_LEFT;
-        else
-            error_pixels = GOAL_LINE_POSITION_RIGHT - get_track_side_position();
+		    if(get_track_side_lost())
+		    	error_pixels = CORRECTION_SIDE_LOST;
+		    else if(track_side == LEFT)
+		        error_pixels = get_track_side_position() - GOAL_LINE_POSITION_LEFT;
+		    else
+		        error_pixels = GOAL_LINE_POSITION_RIGHT - get_track_side_position();
 
 
-        error_cm = PXTOCM * error_pixels;
+		    error_cm = PXTOCM * error_pixels;
 
 
-        speed_correction = pi_regulator(error_cm);
+		    speed_correction = pi_regulator(error_cm);
 
 
-        if(track_side == LEFT){
-        	right_motor_set_speed(average_speed);
-			left_motor_set_speed(average_speed + speed_correction);
-        } else {
-        	right_motor_set_speed(average_speed + speed_correction);
-			left_motor_set_speed(average_speed);
-		}
+		    if(track_side == LEFT){
+		    	right_motor_set_speed(average_speed);
+				left_motor_set_speed(average_speed + speed_correction);
+		    } else {
+		    	right_motor_set_speed(average_speed + speed_correction);
+				left_motor_set_speed(average_speed);
+			}
+
+			//check the pitlane stop line
+			if (pitting && get_line_colour() == GREEN) {
+				
+				clear_boxbox();
+				stop = true;
+				pitting = 0;
+			}
+
+		} else {
+
+			right_motor_set_speed(STOP);
+			left_motor_set_speed(STOP);
+
+		}		
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
@@ -192,3 +225,4 @@ static THD_FUNCTION(Drive, arg) {
 void drive_start(void){
 	chThdCreateStatic(waDrive, sizeof(waDrive), NORMALPRIO, Drive, NULL);
 }
+
