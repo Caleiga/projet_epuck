@@ -1,23 +1,23 @@
+# 	Fichier repris du cours de l'EPFL "systèmes embarqués et robotique" (MICRO-335)
+#	Modifié par Julian Bär et Félix Laurent
+#	Dernière modification: 16.05.2021
 
 #This is a template to build your own project with the e-puck2_main-processor folder as a library.
 #Simply adapt the lines below to be able to compile
 
 # Define project name here
-PROJECT = projet_epuck
+PROJECT = project
 
 #Define path to the e-puck2_main-processor folder
-GLOBAL_PATH = .C:/Users/felix/Desktop/lib/e-puck2_main-processor
+GLOBAL_PATH = ../../lib/e-puck2_main-processor
 
 #Source files to include
 CSRC += ./main.c \
-		./process_image.c \
-<<<<<<< HEAD
-		./pi_regulator.c \
-		./gpio.c \
-
-=======
-		./drive.c \
->>>>>>> origin/camera
+	./audio_processing.c \
+	./communications.c \
+	./fft.c \
+	./image_processing.c \
+	./drive.c \
 
 #Header folders to include
 INCDIR += 
